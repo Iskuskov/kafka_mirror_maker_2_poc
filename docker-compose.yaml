@@ -1,0 +1,71 @@
+version: "2.2"
+services:
+  srcZookeeper:
+    image: ${REPOSITORY}/cp-zookeeper:${CONFLUENT_DOCKER_TAG}
+    restart: always
+    hostname: srcZookeeper
+    container_name: srcZookeeper
+    environment:
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_CLIENT_PORT: "2181"
+      ZOOKEEPER_TICK_TIME: "2000"
+    ports:
+      - "2181:2181"
+  destZookeeper:
+    image: ${REPOSITORY}/cp-zookeeper:${CONFLUENT_DOCKER_TAG}
+    restart: always
+    hostname: destZookeeper
+    container_name: destZookeeper
+    environment:
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_CLIENT_PORT: "2281"
+      ZOOKEEPER_TICK_TIME: "2000"
+    ports:
+      - "2281:2281"
+  srcKafka1:
+    image: ${REPOSITORY}/cp-kafka:${CONFLUENT_DOCKER_TAG}
+    hostname: srcKafka1
+    container_name: srcKafka1
+    depends_on:
+      - srcZookeeper
+    ports:
+      - "10091:10091"
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: "srcZookeeper:2181"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://srcKafka1:10091
+      KAFKA_BROKER_ID: 1
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+  destKafka1:
+    image: ${REPOSITORY}/cp-kafka:${CONFLUENT_DOCKER_TAG}
+    hostname: destKafka1
+    container_name: destKafka1
+    depends_on:
+      - destZookeeper
+    ports:
+      - "11091:11091"
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: "destZookeeper:2281"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://destKafka1:11091
+      KAFKA_BROKER_ID: 1
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+  mirror:
+    image: thiagoquintoandar/kafka:mm-cg-sync
+    entrypoint: connect-mirror-maker.sh /mm2.properties
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: mirror
+#      KAFKA_LOG4J_OPTS: "-Dlog4j.configuration=file:/connect-log4j.properties"
+    volumes:
+      - ./mm2.properties:/mm2.properties
+      - ./connect-log4j.properties:/connect-log4j.properties
+  kafkacat:
+    image: confluentinc/cp-kafkacat
+    command: sleep infinity
+
