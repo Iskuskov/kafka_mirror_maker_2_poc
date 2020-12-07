@@ -1,5 +1,5 @@
 # Proof of Concept for MirrorMaker 2.0 
-_Docker compose playground for Kafka MirrorMaker 2.0_
+_Docker compose sandbox for Kafka MirrorMaker 2.0_
 
 1. Start containers:
 `docker-compose up`
